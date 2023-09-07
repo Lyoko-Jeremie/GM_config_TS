@@ -74,7 +74,8 @@ export type FieldTypes =
     | 'float'
     | 'number'
     | 'br'
-    | 'hidden';
+    | 'hidden'
+    | 'label';
 
 export interface XgmExtendInfo {
     xgmExtendMode?: 'bootstrap';
@@ -493,13 +494,12 @@ export class GM_configStruct<CustomTypes extends string = never> {
                 }
 
                 this.isInit = true;
-                this.onInit && this.onInit.call(this);
+                this.onInit && this.onInit.call(this as any);
             });
         } else {
             this.isInit = true;
-            this.onInit && this.onInit.call(this);
+            this.onInit && this.onInit.call(this as any);
         }
-
     }
 
     /** Display the config panel */
@@ -630,7 +630,7 @@ export class GM_configStruct<CustomTypes extends string = never> {
             window.addEventListener('resize', this.center, false); // Center frame on resize
 
             // Call the open() callback function
-            this.onOpen && this.onOpen(this.frame!.contentDocument || this.frame!.ownerDocument,
+            this.onOpen && (this as any).onOpen(this.frame!.contentDocument || this.frame!.ownerDocument,
                 this.frame!.contentWindow || window,
                 this.frame!);
 
@@ -691,7 +691,7 @@ export class GM_configStruct<CustomTypes extends string = never> {
             field.node = null;
         }
 
-        this.onClose && this.onClose(); //  Call the close() callback function
+        this.onClose && (this as any).onClose(); //  Call the close() callback function
         this.isOpen = false;
     }
 
@@ -732,12 +732,12 @@ export class GM_configStruct<CustomTypes extends string = never> {
             fields[id].reset();
         }
 
-        this.onReset && this.onReset(); // Call the reset() callback function
+        this.onReset && (this as any).onReset(); // Call the reset() callback function
     }
 
     /** Save the current values */
     save(): void {
-        this.write(undefined, undefined, (vals) => this.onSave && this.onSave(vals));
+        this.write(undefined, undefined, (vals) => this.onSave && (this as any).onSave(vals));
     }
 
     read(store?: string, cb?: (r: any) => any): any {
@@ -881,6 +881,7 @@ export class GM_configField {
 
         // Buttons are static and don't have a stored value
         if (settings.type == "button") this.save = false;
+        if (settings.type == "label") this.save = false;
         if (settings.type == "br") this.save = false;
 
         // if a default value wasn't passed through init() then
@@ -958,7 +959,7 @@ export class GM_configField {
             break;
         }
 
-        let label = field.label && type != "button" ?
+        let label = field.label && (type != "button" && type != "label") ?
             GM_configStruct_create('label', pickFieldCss({
                 id: configId + '_' + id + '_field_label',
                 for: configId + '_field_' + id,
@@ -1024,8 +1025,12 @@ export class GM_configField {
                     // innerHTML: value,
                     id: configId + '_field_' + id,
                     className: 'block',
-                    // cols: (field.cols ? field.cols : 20),
-                    // rows: (field.rows ? field.rows : 2)
+                }, field))));
+                break;
+            case 'label':
+                retNode.appendChild((this.node = GM_configStruct_create('div', pickFieldCss({
+                    innerText: field.label,
+                    id: configId + '_field_' + id,
                 }, field))));
                 break;
             default: // fields using input elements
