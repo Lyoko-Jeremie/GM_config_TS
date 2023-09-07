@@ -89,7 +89,7 @@ export interface XgmExtendInfo {
     };
 }
 
-type BootstrapBtnType =
+export type BootstrapBtnType =
     'primary' |
     'secondary' |
     'success' |
@@ -98,11 +98,29 @@ type BootstrapBtnType =
     'info' |
     'light' |
     'dark' |
-    'link';
+    'link' |
+    'outline-primary' |
+    'outline-secondary' |
+    'outline-success' |
+    'outline-danger' |
+    'outline-warning' |
+    'outline-info' |
+    'outline-light' |
+    'outline-dark';
+
+
+export interface XgmExtendField {
+    bootstrap?: {
+        btnType: BootstrapBtnType;
+        smallBtn?: boolean;
+        largeBtn?: boolean;
+    };
+}
 
 function XgmExtend_BtnClass(
     btnType: BootstrapBtnType,
     xgmExtendInfo?: XgmExtendInfo,
+    xgmExtendField?: XgmExtendField,
 ) {
     let cs = '';
     if (!xgmExtendInfo) {
@@ -115,7 +133,17 @@ function XgmExtend_BtnClass(
                 cs = cs + ' ' + 'btn-sm';
             }
         }
-        cs = cs + ' ' + `btn-${btnType}`;
+        if (xgmExtendField && xgmExtendField.bootstrap) {
+            cs = cs + ' ' + `btn-${xgmExtendField.bootstrap.btnType}`;
+            if (xgmExtendField.bootstrap.smallBtn) {
+                cs = cs + ' ' + `btn-sm`;
+            }
+            if (xgmExtendField.bootstrap.largeBtn) {
+                cs = cs + ' ' + `btn-lg`;
+            }
+        } else {
+            cs = cs + ' ' + `btn-${btnType}`;
+        }
     }
     return cs;
 }
@@ -171,6 +199,8 @@ export interface Field<CustomTypes extends string = never> {
     cssClassName?: string;
     cssStyle?: CSSStyleDeclaration;
     cssStyleText?: string;
+
+    xgmExtendField?: XgmExtendField;
 }
 
 function pickFieldCss<B extends object, F extends object>(base: B, toPickField: F): B & Partial<F> {
@@ -1061,7 +1091,11 @@ export class GM_configField {
                         props.checked = value as boolean;
                         break;
                     case 'button':
-                        props.xgmCssClassName = XgmExtend_BtnClass('primary', this.xgmExtendInfo);
+                        props.xgmCssClassName = XgmExtend_BtnClass(
+                            'primary',
+                            this.xgmExtendInfo,
+                            field.xgmExtendField
+                        );
                         props.size = field.size ? field.size : 25;
                         if (field.script) field.click = field.script;
                         if (field.click) props.onclick = field.click;
