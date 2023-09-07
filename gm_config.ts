@@ -76,6 +76,44 @@ export type FieldTypes =
     | 'br'
     | 'hidden';
 
+export interface XgmExtendInfo {
+    xgmExtendMode?: 'bootstrap';
+    bootstrap?: {
+        smallBtn?: boolean;
+    };
+}
+
+type BootstrapBtnType =
+    'primary' |
+    'secondary' |
+    'success' |
+    'danger' |
+    'warning' |
+    'info' |
+    'light' |
+    'dark' |
+    'link';
+
+function XgmExtend_BtnClass(
+    btnType: BootstrapBtnType,
+    xgmExtendInfo?: XgmExtendInfo,
+) {
+    let cs = '';
+    if (!xgmExtendInfo) {
+        return cs;
+    }
+    if (xgmExtendInfo.xgmExtendMode === 'bootstrap') {
+        cs = 'btn';
+        if (xgmExtendInfo.bootstrap) {
+            if (xgmExtendInfo.bootstrap.smallBtn) {
+                cs = cs + ' ' + 'btn-sm';
+            }
+        }
+        cs = cs + ' ' + `btn-${btnType}`;
+    }
+    return cs;
+}
+
 /** Init options where no custom types are defined */
 export interface InitOptionsNoCustom {
     /** Used for this instance of GM_config */
@@ -96,6 +134,8 @@ export interface InitOptionsNoCustom {
         close?: GM_configStruct['onClose'];
         reset?: GM_configStruct['onReset'];
     };
+
+    xgmExtendInfo?: XgmExtendInfo;
 }
 
 /** Init options where custom types are defined */
@@ -127,7 +167,7 @@ export interface Field<CustomTypes extends string = never> {
     cssStyleText?: string;
 }
 
-function pickFieldCss<B extends object, F extends object>(base: B, toPickField: F) {
+function pickFieldCss<B extends object, F extends object>(base: B, toPickField: F): B & Partial<F> {
     return assignIn(base, pick(toPickField, [
         'cssClassList',
         'cssClassName',
@@ -156,7 +196,10 @@ export interface CustomType {
 
 type GM_create_ConfigType =
     { [key: string]: any }
-    & Pick<Field, 'cssStyleText' | 'cssStyle' | 'cssClassName' | 'cssClassList'>;
+    &
+    { xgmCssClassName?: string }
+    &
+    Pick<Field, 'cssStyleText' | 'cssStyle' | 'cssClassName' | 'cssClassList'>;
 
 /**
  *
@@ -216,6 +259,13 @@ function GM_configStruct_create(...args: any[]): HTMLElement | Text {
                         (A as HTMLElement).classList.add(v);
                     });
                 }
+                if (B.xgmCssClassName) {
+                    if (A.className) {
+                        A.className = A.className + ' ' + B.xgmCssClassName;
+                    } else {
+                        A.className = B.xgmCssClassName;
+                    }
+                }
             }
     }
     return A;
@@ -235,7 +285,6 @@ export class GM_configStruct<CustomTypes extends string = never> {
     /** Initialize GM_config */
     // tslint:disable-next-line:no-unnecessary-generics
     init<CustomTypes extends string>(options: InitOptions<CustomTypes>): void {
-
 
         if (!this.isGM4) {
             let promisify = <R>(old: (...args: any[]) => R) => {
@@ -363,6 +412,13 @@ export class GM_configStruct<CustomTypes extends string = never> {
         if (settings.id) this.id = settings.id;
         else if (typeof this.id == "undefined") this.id = 'GM_config';
 
+        // fill xgmExtendInfo
+        if (settings.xgmExtendInfo) {
+            this.xgmExtendInfo = settings.xgmExtendInfo;
+        } else {
+            this.xgmExtendInfo = {};
+        }
+
         // Set the title
         if (settings.title) this.title = settings.title;
 
@@ -412,8 +468,14 @@ export class GM_configStruct<CustomTypes extends string = never> {
                             this.fields[id].remove();
                         }
 
-                        this.fields[id] = new GM_configField(field as any, stored[id], id,
-                            customTypes[field.type], configId);
+                        this.fields[id] = new GM_configField(
+                            field as any,
+                            stored[id],
+                            id,
+                            customTypes[field.type],
+                            configId,
+                            this.xgmExtendInfo,
+                        );
 
                         // Add field to open frame
                         if (this.isOpen) {
@@ -525,8 +587,10 @@ export class GM_configStruct<CustomTypes extends string = never> {
                 GM_configStruct_create('button', {
                     id: configId + '_saveBtn',
                     textContent: 'Save',
+                    type: 'button',
                     title: 'Save settings',
                     className: 'saveclose_buttons',
+                    xgmCssClassName: XgmExtend_BtnClass('primary', this.xgmExtendInfo),
                     onclick: () => {
                         this.save();
                     }
@@ -535,8 +599,10 @@ export class GM_configStruct<CustomTypes extends string = never> {
                 GM_configStruct_create('button', {
                     id: configId + '_closeBtn',
                     textContent: 'Close',
+                    type: 'button',
                     title: 'Close window',
                     className: 'saveclose_buttons',
+                    xgmCssClassName: XgmExtend_BtnClass('secondary', this.xgmExtendInfo),
                     onclick: () => {
                         this.close();
                     }
@@ -784,10 +850,13 @@ export class GM_configStruct<CustomTypes extends string = never> {
     onReset?: (this: GM_configStruct) => void;
     isOpen: boolean = false;
 
+    static create = GM_configStruct_create;
+
     private isInit = false;
     private frameStyle!: string;
     private name: string = 'GM_config';
     private frameSection?: HTMLElement;
+    private xgmExtendInfo!: XgmExtendInfo;
 }
 
 export let GM_config = GM_configStruct;
@@ -799,7 +868,9 @@ export class GM_configField {
         id: string,
         customType: CustomType | undefined,
         configId: string,
+        xgmExtendInfo: XgmExtendInfo,
     ) {
+        this.xgmExtendInfo = xgmExtendInfo;
         // Store the field's settings
         this.settings = settings;
         this.id = id;
@@ -958,27 +1029,28 @@ export class GM_configField {
                 }, field))));
                 break;
             default: // fields using input elements
-                let props = {
+                let props: GM_create_ConfigType = {
                     id: configId + '_field_' + id,
                     type: type,
-                    value: type == 'button' ? field.label : value
+                    value: type == 'button' ? field.label : value,
                 };
 
                 switch (type) {
                     case 'checkbox':
-                        (props as any).checked = value as boolean;
+                        props.checked = value as boolean;
                         break;
                     case 'button':
-                        (props as any).size = field.size ? field.size : 25;
+                        props.xgmCssClassName = XgmExtend_BtnClass('primary', this.xgmExtendInfo);
+                        props.size = field.size ? field.size : 25;
                         if (field.script) field.click = field.script;
-                        if (field.click) (props as any).onclick = field.click;
+                        if (field.click) props.onclick = field.click;
                         break;
                     case 'hidden':
                         break;
                     default:
                         // type = text, int, or float
                         props.type = 'text';
-                        (props as any).size = field.size ? field.size : 25;
+                        props.size = field.size ? field.size : 25;
                 }
 
                 retNode.appendChild((this.node = GM_configStruct_create('input', pickFieldCss(props, field))));
@@ -1146,6 +1218,7 @@ export class GM_configField {
         return value;
     };
 
+    private xgmExtendInfo: XgmExtendInfo;
 }
 
 
