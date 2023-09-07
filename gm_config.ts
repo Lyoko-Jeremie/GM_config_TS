@@ -82,6 +82,11 @@ export interface XgmExtendInfo {
     bootstrap?: {
         smallBtn?: boolean;
     };
+    buttonConfig?: {
+        noSave: boolean;
+        noCancel: boolean;
+        noReset: boolean;
+    };
 }
 
 type BootstrapBtnType =
@@ -211,10 +216,10 @@ type GM_create_ConfigType =
  * @todo Improve types based on
  * <https://github.com/sizzlemctwizzle/GM_config/blob/43fd0fe4/gm_config.js#L444-L455>
  */
-function GM_configStruct_create(text: string): Text;
-function GM_configStruct_create(tagName: string, createConfig: GM_create_ConfigType): HTMLElement;
-function GM_configStruct_create(tagName: string, createConfig: GM_create_ConfigType, ...innerHTML: (string | HTMLElement)[]): HTMLElement;
-function GM_configStruct_create(...args: any[]): HTMLElement | Text {
+export function GM_configStruct_create(text: string): Text;
+export function GM_configStruct_create(tagName: string, createConfig: GM_create_ConfigType): HTMLElement;
+export function GM_configStruct_create(tagName: string, createConfig: GM_create_ConfigType, ...innerHTML: (string | HTMLElement)[]): HTMLElement;
+export function GM_configStruct_create(...args: any[]): HTMLElement | Text {
     let A: HTMLElement | Text;
     let B: GM_create_ConfigType;
     switch (args.length) {
@@ -236,8 +241,11 @@ function GM_configStruct_create(...args: any[]): HTMLElement | Text {
             if (typeof args[2] == "string") {
                 A.innerHTML = args[2];
             } else {
-                for (let i = 2, len = args.length; i < len; ++i)
-                    A.appendChild(args[i]);
+                for (let i = 2, len = args.length; i < len; ++i) {
+                    if (args[i]) {
+                        A.appendChild(args[i]);
+                    }
+                }
             }
             if (B) {
                 if (B.cssStyleText) {
@@ -581,49 +589,57 @@ export class GM_configStruct<CustomTypes extends string = never> {
             this.frameSection = section;
 
             // Add save and close buttons
-            bodyWrapper.appendChild(GM_configStruct_create('div',
-                {id: configId + '_buttons_holder'},
-
-                GM_configStruct_create('button', {
-                    id: configId + '_saveBtn',
-                    textContent: 'Save',
-                    type: 'button',
-                    title: 'Save settings',
-                    className: 'saveclose_buttons',
-                    xgmCssClassName: XgmExtend_BtnClass('primary', this.xgmExtendInfo),
-                    onclick: () => {
-                        this.save();
-                    }
-                }),
-
-                GM_configStruct_create('button', {
-                    id: configId + '_closeBtn',
-                    textContent: 'Close',
-                    type: 'button',
-                    title: 'Close window',
-                    className: 'saveclose_buttons',
-                    xgmCssClassName: XgmExtend_BtnClass('secondary', this.xgmExtendInfo),
-                    onclick: () => {
-                        this.close();
-                    }
-                }),
-
-                GM_configStruct_create('div',
-                    {className: 'reset_holder block'},
-
-                    // Reset link
-                    GM_configStruct_create('a', {
-                        id: configId + '_resetLink',
-                        textContent: 'Reset to defaults',
-                        href: '#',
-                        title: 'Reset fields to default values',
-                        className: 'reset',
-                        onclick: (e: Event) => {
-                            e.preventDefault();
-                            this.reset();
+            let buttonsCreateParams: Parameters<typeof GM_configStruct_create> = ['div', {id: configId + '_buttons_holder'},];
+            if (!(this.xgmExtendInfo && this.xgmExtendInfo.buttonConfig && this.xgmExtendInfo.buttonConfig.noSave)) {
+                buttonsCreateParams.push(
+                    GM_configStruct_create('button', {
+                        id: configId + '_saveBtn',
+                        textContent: 'Save',
+                        type: 'button',
+                        title: 'Save settings',
+                        className: 'saveclose_buttons',
+                        xgmCssClassName: XgmExtend_BtnClass('primary', this.xgmExtendInfo),
+                        onclick: () => {
+                            this.save();
                         }
                     })
-                )));
+                );
+            }
+            if (!(this.xgmExtendInfo && this.xgmExtendInfo.buttonConfig && this.xgmExtendInfo.buttonConfig.noCancel)) {
+                buttonsCreateParams.push(
+                    GM_configStruct_create('button', {
+                        id: configId + '_closeBtn',
+                        textContent: 'Close',
+                        type: 'button',
+                        title: 'Close window',
+                        className: 'saveclose_buttons',
+                        xgmCssClassName: XgmExtend_BtnClass('secondary', this.xgmExtendInfo),
+                        onclick: () => {
+                            this.close();
+                        }
+                    })
+                );
+            }
+            if (!(this.xgmExtendInfo && this.xgmExtendInfo.buttonConfig && this.xgmExtendInfo.buttonConfig.noReset)) {
+                buttonsCreateParams.push(
+                    GM_configStruct_create('div',
+                        {className: 'reset_holder block'},
+                        // Reset link
+                        GM_configStruct_create('a', {
+                            id: configId + '_resetLink',
+                            textContent: 'Reset to defaults',
+                            href: '#',
+                            title: 'Reset fields to default values',
+                            className: 'reset',
+                            onclick: (e: Event) => {
+                                e.preventDefault();
+                                this.reset();
+                            }
+                        })
+                    )
+                );
+            }
+            bodyWrapper.appendChild(GM_configStruct_create.apply(undefined, buttonsCreateParams));
 
             body.appendChild(bodyWrapper); // Paint everything to window at once
             this.center(); // Show and center iframe
