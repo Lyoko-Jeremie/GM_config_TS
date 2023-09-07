@@ -11,9 +11,7 @@ I want to use typescript + webpack to write GM script, and pack the GM_config in
 offline,
 but the `.d.ts` defined and `js` impl seems like not work well with webpack.
 
-so I translate the code to pure typescript
-in [there](https://gist.github.com/Lyoko-Jeremie/3e7d97a5c2eb14d1bc0bb53ae76a4446) ,
-hope it can help someone like me.
+so I translate the code to pure typescript, hope it can help someone like me.
 
 ## now to use
 
