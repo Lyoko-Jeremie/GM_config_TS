@@ -195,7 +195,7 @@ export interface Field<CustomTypes extends string = never> {
     default?: FieldValue;
     save?: boolean;
 
-    cssClassList?: DOMTokenList;
+    cssClassList?: string[];
     cssClassName?: string;
     cssStyle?: CSSStyleDeclaration;
     cssStyleText?: string;
