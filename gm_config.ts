@@ -1078,10 +1078,6 @@ export class GM_configField {
                 retNode.appendChild(wrap);
                 break;
             case 'datalist':
-                wrap = GM_configStruct_create('div', pickFieldCss({
-                    id: configId + '_field_' + id + '_div',
-                }, field));
-                this.node = wrap;
 
                 let iput = GM_configStruct_create('input', pickFieldCss({
                     id: configId + '_field_' + id,
@@ -1089,15 +1085,17 @@ export class GM_configField {
                     type: 'text',
                     size: field.size ? field.size : 25,
                 }, field))
-                wrap.appendChild(iput);
+                this.node = iput;
+                retNode.appendChild(iput);
+                iput.addEventListener("change", (event) => {
+                    this.value = (event.target as HTMLInputElement).value;
+                });
 
                 let datalist = GM_configStruct_create('datalist', pickFieldCss({
                     id: configId + '_field_' + id + '_input' + '_list',
                     cssStyleText: 'display: none !important;',
                 }, field));
-
                 iput.setAttribute('list', datalist.id);
-
                 for (let i = 0, len = options.length; i < len; ++i) {
                     let option = options[i];
                     datalist.appendChild(GM_configStruct_create('option', {
@@ -1105,13 +1103,8 @@ export class GM_configField {
                         // selected: option == value
                     }, option));
                 }
-                wrap.appendChild(datalist);
+                retNode.appendChild(datalist);
 
-                iput.addEventListener("change", (event) => {
-                    this.value = (event.target as HTMLInputElement).value;
-                });
-
-                retNode.appendChild(wrap);
                 break;
             case 'br':
                 retNode.appendChild((this.node = GM_configStruct_create('br', pickFieldCss({
@@ -1195,8 +1188,10 @@ export class GM_configField {
             case 'checkbox':
                 rval = (node as HTMLInputElement).checked;
                 break;
-            case 'select':
-                rval = ((node as HTMLSelectElement)[(node as HTMLSelectElement).selectedIndex] as any).value;
+            case 'select': {
+                let se = node as HTMLSelectElement;
+                rval = (se[se.selectedIndex] as HTMLOptionElement).value;
+            }
                 break;
             case 'radio':
                 let radios = node.getElementsByTagName('input');
@@ -1208,20 +1203,6 @@ export class GM_configField {
             case 'button':
             case 'br':
             case 'label':
-                break;
-            case 'datalist': {
-                let i = 0;
-                for (; i < node.childElementCount; i++) {
-                    const cn = node.childNodes[i];
-                    if (cn.nodeName.toLowerCase() === 'input') {
-                        rval = (cn as HTMLInputElement).value;
-                        break;
-                    }
-                }
-                if (i === node.childElementCount) {
-                    return null;
-                }
-            }
                 break;
             case 'int':
             case 'integer':
@@ -1242,6 +1223,7 @@ export class GM_configField {
                     return null;
                 rval = num;
                 break;
+            case 'datalist':
             default:
                 rval = (node as any).value;
                 break;
