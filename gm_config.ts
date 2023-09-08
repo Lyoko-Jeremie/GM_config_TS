@@ -75,7 +75,8 @@ export type FieldTypes =
     | 'number'
     | 'br'
     | 'hidden'
-    | 'label';
+    | 'label'
+    | 'datalist';
 
 export interface XgmExtendInfo {
     xgmExtendMode?: 'bootstrap';
@@ -1076,6 +1077,42 @@ export class GM_configField {
 
                 retNode.appendChild(wrap);
                 break;
+            case 'datalist':
+                wrap = GM_configStruct_create('div', pickFieldCss({
+                    id: configId + '_field_' + id + '_div',
+                }, field));
+                this.node = wrap;
+
+                let iput = GM_configStruct_create('input', pickFieldCss({
+                    id: configId + '_field_' + id,
+                    value: value,
+                    type: 'text',
+                    size: field.size ? field.size : 25,
+                }, field))
+                wrap.appendChild(iput);
+
+                let datalist = GM_configStruct_create('datalist', pickFieldCss({
+                    id: configId + '_field_' + id + '_input' + '_list',
+                    cssStyleText: 'display: none !important;',
+                }, field));
+
+                iput.setAttribute('list', datalist.id);
+
+                for (let i = 0, len = options.length; i < len; ++i) {
+                    let option = options[i];
+                    datalist.appendChild(GM_configStruct_create('option', {
+                        value: option,
+                        // selected: option == value
+                    }, option));
+                }
+                wrap.appendChild(datalist);
+
+                iput.addEventListener("change", (event) => {
+                    this.value = (event.target as HTMLInputElement).value;
+                });
+
+                retNode.appendChild(wrap);
+                break;
             case 'br':
                 retNode.appendChild((this.node = GM_configStruct_create('br', pickFieldCss({
                     // innerHTML: value,
@@ -1171,6 +1208,20 @@ export class GM_configField {
             case 'button':
             case 'br':
             case 'label':
+                break;
+            case 'datalist': {
+                let i = 0;
+                for (; i < node.childElementCount; i++) {
+                    const cn = node.childNodes[i];
+                    if (cn.nodeName.toLowerCase() === 'input') {
+                        rval = (cn as HTMLInputElement).value;
+                        break;
+                    }
+                }
+                if (i === node.childElementCount) {
+                    return null;
+                }
+            }
                 break;
             case 'int':
             case 'integer':
