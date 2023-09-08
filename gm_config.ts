@@ -1169,6 +1169,8 @@ export class GM_configField {
                 }
                 break;
             case 'button':
+            case 'br':
+            case 'label':
                 break;
             case 'int':
             case 'integer':
