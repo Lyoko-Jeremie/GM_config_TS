@@ -1040,6 +1040,12 @@ export class GM_configField {
                         name: id,
                         checked: options[i] == value
                     }));
+                    rad.addEventListener("change", (event) => {
+                        if ((event.target as HTMLInputElement).checked) {
+                            this.value = options[i];
+                        }
+                    });
+
 
                     let radLabelPos = labelPos &&
                     (labelPos == 'left' || labelPos == 'right') ?
@@ -1063,6 +1069,10 @@ export class GM_configField {
                         selected: option == value
                     }, option));
                 }
+
+                wrap.addEventListener("change", (event) => {
+                    this.value = (event.target as HTMLSelectElement).value;
+                });
 
                 retNode.appendChild(wrap);
                 break;
@@ -1109,6 +1119,11 @@ export class GM_configField {
                 }
 
                 retNode.appendChild((this.node = GM_configStruct_create('input', pickFieldCss(props, field))));
+                if (type === 'checkbox') {
+                    this.node.addEventListener("change", (event) => {
+                        this.value = (event.target as HTMLInputElement).checked;
+                    });
+                }
         }
 
         if (label) {
