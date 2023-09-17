@@ -56,7 +56,7 @@ GM_config is distributed under the terms of the GNU Lesser General Public Licens
 
 // ==/UserLibrary==
 
-import {assignIn, pick} from 'lodash';
+import {assignIn, pick, get} from 'lodash';
 
 export type FieldValue = string | number | boolean;
 /** Valid types for Field `type` property */
@@ -251,6 +251,7 @@ export function GM_configStruct_create(text: string): Text;
 export function GM_configStruct_create(tagName: string, createConfig: GM_create_ConfigType): HTMLElement;
 export function GM_configStruct_create(tagName: string, createConfig: GM_create_ConfigType, ...innerHTML: (string | HTMLElement)[]): HTMLElement;
 export function GM_configStruct_create(...args: any[]): HTMLElement | Text {
+    console.log('GM_configStruct_create', args);
     let A: HTMLElement | Text;
     let B: GM_create_ConfigType;
     switch (args.length) {
@@ -263,7 +264,7 @@ export function GM_configStruct_create(...args: any[]): HTMLElement | Text {
             for (let b in B) {
                 if (b.indexOf("on") == 0)
                     A.addEventListener(b.substring(2), (B as any)[b], false);
-                else if (",style,accesskey,id,name,src,href,which,for".indexOf("," +
+                else if (",style,accesskey,id,name,src,href,which,for,readonly".indexOf("," +
                     b.toLowerCase()) != -1)
                     A.setAttribute(b, (B as any)[b]);
                 else
@@ -339,22 +340,55 @@ export class GM_configStruct<CustomTypes extends string = never> {
                 };
             };
 
-            let getValue = this.isGM ? GM_getValue
+            // @ts-ignore
+            let getValue = (this.isGM && GM_getValue) ? GM_getValue
                 : <TValue>(name: string, defaultValue?: TValue) => {
                     let s = localStorage.getItem(name);
                     return s !== null ? s : defaultValue;
                 };
-            let setValue = this.isGM ? GM_setValue
+            // @ts-ignore
+            let setValue = (this.isGM && GM_setValue) ? GM_setValue
                 : (name: string, value: any) => localStorage.setItem(name, value);
+            // @ts-ignore
             let log = typeof GM_log !== 'undefined' ? GM_log : console.log;
 
-            (GM as any).getValue = promisify(getValue);
-            (GM as any).setValue = promisify(setValue);
-            (GM as any).log = promisify(log);
+            if (this.isGM || this.isGM4) {
+                // @ts-ignore
+                (GM as any).getValue = promisify(getValue);
+                // @ts-ignore
+                (GM as any).setValue = promisify(setValue);
+                // @ts-ignore
+                (GM as any).log = promisify(log);
+            }
         }
-        this.getValue = GM.getValue;
-        this.setValue = GM.setValue;
-        this.log = GM.log;
+        if (this.isGM || this.isGM4) {
+            // @ts-ignore
+            this.getValue = GM.getValue;
+            // @ts-ignore
+            this.setValue = GM.setValue;
+            // @ts-ignore
+            this.log = GM.log;
+        } else {
+            // the polyfill for work in none GM env
+            this.getValue = (name: string, def: FieldValue) => {
+                let s = localStorage.getItem(name);
+                if (s) {
+                    try {
+                        return get(JSON.parse(s), 'value', def);
+                    } catch (e) {
+                        console.error(e);
+                    }
+                }
+                return def;
+            };
+            this.setValue = (name: string, value: FieldValue) => {
+                localStorage.setItem(name, JSON.stringify({
+                    name: name,
+                    value: value,
+                }));
+            };
+            this.log = console.log;
+        }
 
         // Initialize instance variables
         if (typeof this.fields == "undefined") {
@@ -847,10 +881,10 @@ export class GM_configStruct<CustomTypes extends string = never> {
     /* Computed */
 
     /** Whether GreaseMonkey functions are present */
-    isGM4 = typeof GM.getValue !== 'undefined' &&
-        typeof GM.setValue !== 'undefined';
-    isGM = this.isGM4 || (typeof GM_getValue !== 'undefined' &&
-        typeof GM_getValue('a', 'b') !== 'undefined');
+        // @ts-ignore
+    isGM4 = typeof GM !== 'undefined' && typeof GM.getValue !== 'undefined' && typeof GM.setValue !== 'undefined';
+    // @ts-ignore
+    isGM = this.isGM4 || (typeof GM_getValue !== 'undefined' && typeof GM_getValue('a', 'b') !== 'undefined');
 
     /**
      * Either calls `localStorage.setItem` or `GM_setValue`.
@@ -878,7 +912,8 @@ export class GM_configStruct<CustomTypes extends string = never> {
     parser: (jsonString: string) => any = JSON.parse;
 
     /** Log a string with multiple fallbacks */
-    log: (...message: any[]) => Promise<void> | void = GM.log || console.log;
+        // @ts-ignore
+    log: (...message: any[]) => Promise<void> | void = (typeof GM !== 'undefined' ? GM.log : undefined) || console.log;
 
     /* Created from GM_configInit */
     id!: string;
@@ -1021,7 +1056,8 @@ export class GM_configField {
                     id: configId + '_field_' + id,
                     className: 'block',
                     cols: (field.cols ? field.cols : 20),
-                    rows: (field.rows ? field.rows : 2)
+                    rows: (field.rows ? field.rows : 2),
+                    readonly: field.readonly,
                 }, field))));
                 break;
             case 'radio':
