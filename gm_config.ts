@@ -75,6 +75,7 @@ export type FieldTypes =
     | 'number'
     | 'br'
     | 'hidden'
+    | 'file'
     | 'label'
     | 'datalist';
 
@@ -1160,6 +1161,7 @@ export class GM_configField {
                     id: configId + '_field_' + id,
                     type: type,
                     value: type == 'button' ? field.label : value,
+                    readonly: field.readonly,
                 };
 
                 switch (type) {
@@ -1177,6 +1179,8 @@ export class GM_configField {
                         if (field.click) props.onclick = field.click;
                         break;
                     case 'hidden':
+                        break;
+                    case 'file':
                         break;
                     default:
                         // type = text, int, or float
@@ -1258,6 +1262,9 @@ export class GM_configField {
                 if (!this._checkNumberRange(num, warn))
                     return null;
                 rval = num;
+                break;
+            case 'file':
+                rval = node;
                 break;
             case 'datalist':
             default:
