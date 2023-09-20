@@ -160,7 +160,7 @@ export interface InitOptionsNoCustom {
     /** Optional styling to apply to the menu */
     css?: string;
     /** Element to use for the config panel */
-    frame?: HTMLIFrameElement;
+    frame?: HTMLIFrameElement | HTMLDivElement;
 
     /** Handlers for different events */
     events?: {
@@ -712,7 +712,9 @@ export class GM_configStruct<CustomTypes extends string = never> {
             window.addEventListener('resize', this.center, false); // Center frame on resize
 
             // Call the open() callback function
+            // @ts-ignore
             this.onOpen && (this as any).onOpen(this.frame!.contentDocument || this.frame!.ownerDocument,
+                // @ts-ignore
                 this.frame!.contentWindow || window,
                 this.frame!);
 
@@ -738,11 +740,13 @@ export class GM_configStruct<CustomTypes extends string = never> {
             document.body.appendChild(this.frame);
 
             // In WebKit src can't be set until it is added to the page
-            this.frame.src = '';
+            if ("src" in this.frame) {
+                this.frame.src = '';
+            }
             // we wait for the iframe to load before we can modify it
             let that = this;
             this.frame.addEventListener('load', (e) => {
-                let frame = this.frame;
+                let frame = this.frame as HTMLIFrameElement;
                 if (!frame!.contentDocument) {
                     that.log("GM_config failed to initialize default settings dialog node!");
                 } else {
@@ -757,6 +761,7 @@ export class GM_configStruct<CustomTypes extends string = never> {
     /** Close the config panel */
     close(): void {
         // If frame is an iframe then remove it
+        // @ts-ignore
         if (this.frame && this.frame.contentDocument) {
             GM_configStruct_remove(this.frame);
             this.frame = undefined;
@@ -925,7 +930,7 @@ export class GM_configStruct<CustomTypes extends string = never> {
         stylish: string;
     };
     fields!: Record<string, GM_configField>;
-    frame?: HTMLIFrameElement;
+    frame?: HTMLIFrameElement | HTMLDivElement;
     onInit?: (this: GM_configStruct) => void;
     onOpen?: (this: GM_configStruct, document: Document, window: Window, frame: HTMLElement) => void;
     onSave?: (this: GM_configStruct, values: any) => void;
