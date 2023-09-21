@@ -1056,15 +1056,19 @@ export class GM_configField {
 
         let wrap = null;
         switch (type) {
-            case 'textarea':
-                retNode.appendChild((this.node = GM_configStruct_create('textarea', pickFieldCss({
+            case 'textarea': {
+                const c = {
                     innerHTML: value,
                     id: configId + '_field_' + id,
                     className: 'block',
                     cols: (field.cols ? field.cols : 20),
                     rows: (field.rows ? field.rows : 2),
-                    readonly: field.readonly,
-                }, field))));
+                } as GM_create_ConfigType;
+                if (field.readonly) {
+                    c['readonly'] = field.readonly;
+                }
+                retNode.appendChild((this.node = GM_configStruct_create('textarea', pickFieldCss(c, field))));
+            }
                 break;
             case 'radio':
                 wrap = GM_configStruct_create('div', pickFieldCss({
@@ -1166,8 +1170,10 @@ export class GM_configField {
                     id: configId + '_field_' + id,
                     type: type,
                     value: type == 'button' ? field.label : value,
-                    readonly: field.readonly,
-                };
+                } as GM_create_ConfigType;
+                if (field.readonly) {
+                    props['readonly'] = field.readonly;
+                }
 
                 switch (type) {
                     case 'checkbox':
