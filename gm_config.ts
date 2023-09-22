@@ -252,7 +252,7 @@ export function GM_configStruct_create(text: string): Text;
 export function GM_configStruct_create(tagName: string, createConfig: GM_create_ConfigType): HTMLElement;
 export function GM_configStruct_create(tagName: string, createConfig: GM_create_ConfigType, ...innerHTML: (string | HTMLElement)[]): HTMLElement;
 export function GM_configStruct_create(...args: any[]): HTMLElement | Text {
-    console.log('GM_configStruct_create', args);
+    // console.log('GM_configStruct_create', args);
     let A: HTMLElement | Text;
     let B: GM_create_ConfigType;
     switch (args.length) {
