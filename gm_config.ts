@@ -56,7 +56,7 @@ GM_config is distributed under the terms of the GNU Lesser General Public Licens
 
 // ==/UserLibrary==
 
-import {assignIn, pick, get} from 'lodash';
+import {assignIn, pick, get, isFunction} from 'lodash';
 
 export type FieldValue = string | number | boolean;
 /** Valid types for Field `type` property */
@@ -201,6 +201,12 @@ export interface Field<CustomTypes extends string = never> {
     cssClassName?: string;
     cssStyle?: CSSStyleDeclaration;
     cssStyleText?: string;
+
+    // eventCallbacks?: { [key in keyof HTMLElementEventMap]: ((this: HTMLElement, ev: HTMLElementEventMap[key]) => any) };
+    eventCallbacks?: {
+        [key: string]: ((this: HTMLElement, ev: HTMLElementEventMap[keyof HTMLElementEventMap]) => any)
+    };
+    afterToNode?: (node: HTMLElement, wrapper: HTMLElement | null, settings: Field, id: string, configId: string) => any;
 
     xgmExtendField?: XgmExtendField;
 }
@@ -1016,6 +1022,9 @@ export class GM_configField {
         let configId = this.configId;
         let labelPos = field.labelPos;
 
+        let eventCallbacks = field.eventCallbacks || {};
+        let afterToNode = field.afterToNode;
+
         // let create = this.create;
 
         function addLabel(pos: string, labelEl: HTMLElement, parentNode: HTMLElement, beforeEl?: HTMLElement) {
@@ -1054,7 +1063,7 @@ export class GM_configField {
                 className: 'field_label'
             }, field), field.label) : null;
 
-        let wrap = null;
+        let wrap: HTMLElement | null = null;
         switch (type) {
             case 'textarea': {
                 const c = {
@@ -1091,6 +1100,7 @@ export class GM_configField {
                         if ((event.target as HTMLInputElement).checked) {
                             this.value = options[i];
                         }
+                        eventCallbacks.change?.call(rad, event);
                     });
 
 
@@ -1119,6 +1129,7 @@ export class GM_configField {
 
                 wrap.addEventListener("change", (event) => {
                     this.value = (event.target as HTMLSelectElement).value;
+                    eventCallbacks.change?.call(this.node as HTMLElement, event);
                 });
 
                 retNode.appendChild(wrap);
@@ -1135,6 +1146,7 @@ export class GM_configField {
                 retNode.appendChild(iput);
                 iput.addEventListener("change", (event) => {
                     this.value = (event.target as HTMLInputElement).value;
+                    eventCallbacks.change?.call(iput, event);
                 });
 
                 let datalist = GM_configStruct_create('datalist', pickFieldCss({
@@ -1203,6 +1215,7 @@ export class GM_configField {
                 if (type === 'checkbox') {
                     this.node.addEventListener("change", (event) => {
                         this.value = (event.target as HTMLInputElement).checked;
+                        eventCallbacks.change?.call(this.node as HTMLElement, event);
                     });
                 }
         }
@@ -1215,6 +1228,19 @@ export class GM_configField {
                     "left" : "right";
 
             addLabel(labelPos, label, retNode);
+        }
+
+        // add dom event callback
+        for (const k in eventCallbacks) {
+            if (k === "change") {
+                continue;
+            }
+            this.node?.addEventListener(k, eventCallbacks[k]);
+        }
+
+        // add afterToNode callback
+        if (afterToNode && isFunction(afterToNode)) {
+            afterToNode(this.node, this.wrapper, this.settings, this.id, this.configId);
         }
 
         return retNode;
