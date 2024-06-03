@@ -1267,7 +1267,7 @@ export class GM_configField {
                 break;
             case 'select': {
                 let se = node as HTMLSelectElement;
-                rval = (se[se.selectedIndex] as HTMLOptionElement).value;
+                rval = (se[se.selectedIndex] as HTMLOptionElement)?.value || null;
             }
                 break;
             case 'radio':
