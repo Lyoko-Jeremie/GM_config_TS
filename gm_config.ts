@@ -58,7 +58,7 @@ GM_config is distributed under the terms of the GNU Lesser General Public Licens
 
 import {assignIn, pick, get, isFunction} from 'lodash';
 
-export type FieldValue = string | number | boolean;
+export type FieldValue = string | number | boolean | string[] /*if multiple select */;
 /** Valid types for Field `type` property */
 export type FieldTypes =
     | 'text'
@@ -1118,6 +1118,9 @@ export class GM_configField {
                     id: configId + '_field_' + id
                 }, field));
                 this.node = wrap;
+                if (field.multiple) {
+                    (wrap as HTMLSelectElement).multiple = true;
+                }
 
                 for (let i = 0, len = options.length; i < len; ++i) {
                     let option = options[i];
@@ -1267,7 +1270,13 @@ export class GM_configField {
                 break;
             case 'select': {
                 let se = node as HTMLSelectElement;
-                rval = (se[se.selectedIndex] as HTMLOptionElement)?.value || null;
+                if (se.multiple) {
+                    let selectedOptions = Array.from(se.selectedOptions) || Array.from(se.options).filter(option => option.selected);
+                    let selectedValues = selectedOptions.map(option => option.value);
+                    rval = selectedValues;
+                } else {
+                    rval = (se[se.selectedIndex] as HTMLOptionElement)?.value || null;
+                }
             }
                 break;
             case 'radio':
