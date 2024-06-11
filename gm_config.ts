@@ -1292,6 +1292,8 @@ export class GM_configField {
                 break;
             case 'int':
             case 'integer':
+            case 'unsigned int':
+            case 'unsinged integer':
             case 'float':
             case 'number':
                 let num = Number((node as HTMLInputElement).value);
