@@ -74,6 +74,7 @@ export type FieldTypes =
     | 'float'
     | 'number'
     | 'br'
+    | 'div'
     | 'hidden'
     | 'file'
     | 'label'
@@ -971,6 +972,7 @@ export class GM_configField {
         if (settings.type == "button") this.save = false;
         if (settings.type == "label") this.save = false;
         if (settings.type == "br") this.save = false;
+        if (settings.type == "div") this.save = false;
 
         // if a default value wasn't passed through init() then
         //   if the type is custom use its default value
@@ -1159,6 +1161,13 @@ export class GM_configField {
                     className: 'block',
                 }, field))));
                 break;
+            case 'div':
+                retNode.appendChild((this.node = GM_configStruct_create('div', pickFieldCss({
+                    // innerHTML: value,
+                    id: configId + '_field_' + id,
+                    className: 'block',
+                }, field))));
+                break;
             case 'label':
                 retNode.appendChild((this.node = GM_configStruct_create('div', pickFieldCss({
                     innerText: field.label,
@@ -1253,6 +1262,7 @@ export class GM_configField {
                 break;
             case 'button':
             case 'br':
+            case 'div':
             case 'label':
                 break;
             case 'int':
